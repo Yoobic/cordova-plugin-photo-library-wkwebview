@@ -206,7 +206,9 @@ public class PhotoLibraryService {
           Log.v("DEBUG saveMedia run");
           // Find the saved image in the library and return it as libraryItem
           String whereClause = "(" + MediaStore.MediaColumns.DATA + " = \"" + filePath + "\")";
+          Log.v("DEBUG before toString, whereClause: " + whereClause);
           whereClause = uri.toString();
+          Log.v("DEBUG after toString");
           queryLibrary(context, whereClause, new ChunkResultRunnable() {
             @Override
             public void run(ArrayList<JSONObject> chunk, int chunkNum, boolean isLastChunk) {
