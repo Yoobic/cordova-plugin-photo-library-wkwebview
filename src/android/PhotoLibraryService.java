@@ -203,28 +203,20 @@ public class PhotoLibraryService {
       @Override
       public void run(String filePath, Uri uri) {
         try {
-          Log.v("DEBUG saveMedia run");
           // Find the saved image in the library and return it as libraryItem
           String whereClause = "(" + MediaStore.MediaColumns.DATA + " = \"" + filePath + "\")";
-          Log.v("DEBUG before toString, whereClause: " + whereClause);
           whereClause = uri.toString();
-          Log.v("DEBUG after toString");
           queryLibrary(context, whereClause, new ChunkResultRunnable() {
             @Override
             public void run(ArrayList<JSONObject> chunk, int chunkNum, boolean isLastChunk) {
-              // completion.run(chunk.size() == 1 ? chunk.get(0) : null);
-          Log.v("DEBUG saveMedia queryLibrary run");
-              completion.run(chunk.get(0));
+              completion.run(chunk.size() == 1 ? chunk.get(0) : null);
             }
           });
         } catch (Exception e) {
-          Log.v("DEBUG saveMedia exception");
-          Log.v(e);
           completion.run(null);
         }
       }
     });
-
   }
 
   public void saveVideo(final Context context, final CordovaInterface cordova, String url, String album)
