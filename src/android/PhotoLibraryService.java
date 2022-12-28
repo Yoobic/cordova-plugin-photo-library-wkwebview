@@ -1,5 +1,7 @@
 package com.terikon.cordova.photolibrary;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -9,6 +11,7 @@ import android.media.ExifInterface;
 import android.media.MediaScannerConnection;
 import android.media.ThumbnailUtils;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.MediaStore;
@@ -203,7 +206,7 @@ public class PhotoLibraryService {
       public void run(String filePath) {
         try {
           // Find the saved image in the library and return it as libraryItem
-          String whereClause = MediaStore.MediaColumns.DATA + " = \"" + filePath + "\"";
+          String whereClause = MediaStore.Images.Media.EXTERNAL_CONTENT_URI + " = \"" + filePath + "\"";
           queryLibrary(context, whereClause, new ChunkResultRunnable() {
             @Override
             public void run(ArrayList<JSONObject> chunk, int chunkNum, boolean isLastChunk) {
@@ -214,7 +217,7 @@ public class PhotoLibraryService {
           completion.run(null);
         }
       }
-    });
+    }, MediaStore.Images.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_PICTURES);
 
   }
 
@@ -226,10 +229,9 @@ public class PhotoLibraryService {
       public void run(String filePath) {
         // TODO: call queryLibrary and return libraryItem of what was saved
       }
-    });
+    }, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, Environment.DIRECTORY_MOVIES);
 
   }
-
   public class PictureData {
 
     public final byte[] bytes;
@@ -368,7 +370,7 @@ public class PhotoLibraryService {
 
       // photoId is in format "imageid;imageurl"
       queryResult.put("id",
-          queryResult.get("id") + ";" +
+        queryResult.get("id") + ";" +
           queryResult.get("nativeURL"));
 
       queryResult.remove("nativeURL"); // Not needed
@@ -505,7 +507,7 @@ public class PhotoLibraryService {
 
     switch (orientation) {
       case ExifInterface.ORIENTATION_NORMAL: // 1
-          return source;
+        return source;
       case ExifInterface.ORIENTATION_FLIP_HORIZONTAL: // 2
         matrix.setScale(-1, 1);
         break;
@@ -591,7 +593,7 @@ public class PhotoLibraryService {
     put("ogg", ".ogv");
   }};
 
-  private void saveMedia(Context context, CordovaInterface cordova, String url, String album, Map<String, String> mimeToExtension, FilePathRunnable completion)
+  private void saveMedia(Context context, CordovaInterface cordova, String url, String album, Map<String, String> mimeToExtension, FilePathRunnable completion, Uri externalURI, String directoryURI)
     throws IOException, URISyntaxException {
 
     File albumDirectory = makeAlbumInPhotoLibrary(album);
@@ -636,7 +638,18 @@ public class PhotoLibraryService {
       targetFile = getImageFileName(albumDirectory, extension);
 
       InputStream is;
-      FileOutputStream os = new FileOutputStream(targetFile);
+      OutputStream os;
+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        ContentResolver resolver = context.getContentResolver();
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(
+          MediaStore.MediaColumns.RELATIVE_PATH, directoryURI + File.separator + album);
+        Uri imageUri = resolver.insert(externalURI, contentValues);
+        os = resolver.openOutputStream(imageUri);
+      } else {
+        os = new FileOutputStream(targetFile);
+      }
 
       if(url.startsWith("file:///android_asset/")) {
         String assetUrl = url.replace("file:///android_asset/", "");
