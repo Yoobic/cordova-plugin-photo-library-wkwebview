@@ -16,6 +16,7 @@ import android.os.Environment;
 import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.util.Base64;
+import android.webkit.MimeTypeMap;
 
 import org.apache.cordova.CordovaInterface;
 import org.json.JSONArray;
@@ -643,8 +644,11 @@ public class PhotoLibraryService {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         ContentResolver resolver = context.getContentResolver();
         ContentValues contentValues = new ContentValues();
+        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, targetFile.getName());
         contentValues.put(
           MediaStore.MediaColumns.RELATIVE_PATH, directoryURI + File.separator + album);
+        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, getMIMEType(url));
+
         Uri imageUri = resolver.insert(externalURI, contentValues);
         os = resolver.openOutputStream(imageUri);
       } else {
@@ -668,6 +672,15 @@ public class PhotoLibraryService {
 
     addFileToMediaLibrary(context, targetFile, completion);
 
+  }
+
+  private static String getMIMEType(String url) {
+    String mType = null;
+    String mExtension = MimeTypeMap.getFileExtensionFromUrl(url);
+    if (mExtension != null) {
+      mType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(mExtension);
+    }
+    return mType;
   }
 
   public interface ChunkResultRunnable {
